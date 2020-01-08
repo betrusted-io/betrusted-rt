@@ -1,4 +1,13 @@
-#include "asm.h"
+#if __riscv_xlen == 64
+# define STORE    sd
+# define LOAD     ld
+# define LOG_REGBYTES 3
+#else
+# define STORE    sw
+# define LOAD     lw
+# define LOG_REGBYTES 2
+#endif
+#define REGBYTES (1 << LOG_REGBYTES)
 
 /*
     Entry point of all programs (_start).
@@ -12,6 +21,14 @@
 .global _start
 
 _start:
+    j _crt_init
+//    .word 0xb469075a // Magic value for config flags
+//    .word 0x00000020 // USB_NO_RESET flag so we can attach the debugger
+
+
+.section .text
+
+_crt_init:
     .cfi_startproc
     .cfi_undefined ra
 
@@ -55,18 +72,21 @@ _start:
     la gp, __global_pointer$
     .option pop
 
+#if !defined(SKIP_MULTICORE)
     // Check hart id
     csrr a2, mhartid
     lui t0, %hi(_max_hart_id)
     add t0, t0, %lo(_max_hart_id)
     bgtu a2, t0, abort
-
+#endif // SKIP_MULTICORE
     // Allocate stacks
     la sp, _stack_start
+#if !defined(SKIP_MULTICORE)
     lui t0, %hi(_hart_stack_size)
     add t0, t0, %lo(_hart_stack_size)
     mul t0, a2, t0
     sub sp, sp, t0
+#endif // SKIP_MULTICORE
 
     // Set frame pointer
     add s0, sp, zero

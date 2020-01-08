@@ -255,7 +255,7 @@
 #![deny(missing_docs)]
 #![deny(warnings)]
 
-extern crate riscv;
+extern crate vexriscv as riscv;
 extern crate riscv_rt_macros as macros;
 extern crate r0;
 
